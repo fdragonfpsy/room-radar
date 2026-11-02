@@ -2628,7 +2628,29 @@ const BG = (() => {
   let W=0,H=0,DPR=1, t0=performance.now();
   const core = { x:.72, y:.55, tx:.72, ty:.55, r:1, tr:1, pulse:0 };
   let nodes = [], flyers = [], colorMode = false;
-  function resize(){ DPR = Math.min(2, window.devicePixelRatio||1); W = innerWidth; H = innerHeight; cv.width = W*DPR; cv.height = H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); }
+  const RM = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch(e){ return false; } })();
+  let fibers = [], bokeh = [], sparks = [];
+  const rnd = (a,b) => a + Math.random()*(b-a);
+  const FCOL = ["0,213,208","29,184,242","255,255,255","0,213,208","120,200,255","255,120,140"];
+  function seedLights(){
+    const area = W*H, small = W < 700;
+    // light pulses travelling along fiber-like curves (bottom-right sweeping up, like the key visual)
+    fibers = [...Array(small ? 7 : 16)].map(() => {
+      const x0 = W*rnd(.80,1.02);
+      return { p:[[x0, H+30],[x0 - W*rnd(.02,.10), H*rnd(.55,.75)],[x0 + W*rnd(-.02,.06), H*rnd(.20,.40)],[W*rnd(.86,1.08), -30]],
+               s: rnd(.035,.09), o: Math.random(), c: FCOL[Math.random()*FCOL.length|0], r: rnd(1.6,2.8) };
+    });
+    // soft drifting bokeh, concentrated in the top-right glow area
+    bokeh = [...Array(small ? 12 : 26)].map((_,i) => ({
+      x: i < (small?8:18) ? rnd(.45,1.02) : rnd(0,1), y: i < (small?8:18) ? rnd(-.02,.32) : rnd(0,1),
+      r: rnd(6, small?22:42), a: rnd(.04,.14), c: ["0,213,208","29,184,242","140,110,255","255,255,255"][Math.random()*4|0],
+      sx: rnd(-.006,.006), sy: rnd(-.004,.004), ph: Math.random()*6.28 }));
+    // twinkling sparks
+    sparks = [...Array(Math.round(area/ (small?9000:14000)))].map(() => ({ x:Math.random(), y:Math.random(), ph:Math.random()*6.28, sp:rnd(.6,2.2), r:rnd(.6,1.6) }));
+  }
+  function bez(p,t){ const u=1-t; return [u*u*u*p[0][0]+3*u*u*t*p[1][0]+3*u*t*t*p[2][0]+t*t*t*p[3][0], u*u*u*p[0][1]+3*u*u*t*p[1][1]+3*u*t*t*p[2][1]+t*t*t*p[3][1]]; }
+  function glow(x,y,r,c,a){ const g = ctx.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,`rgba(${c},${a})`); g.addColorStop(1,`rgba(${c},0)`); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
+  function resize(){ DPR = Math.min(2, window.devicePixelRatio||1); W = innerWidth; H = innerHeight; cv.width = W*DPR; cv.height = H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); seedLights(); }
   addEventListener("resize", resize); resize();
   const orbits = [
     {rx:.30, ry:.17, rot:-.35, sp:.020, dash:false, a:.55, teal:false, from:.05, to:.92},
@@ -2650,6 +2672,28 @@ const BG = (() => {
   function frame(now){
     const t = (now - t0)/1000;
     ctx.clearRect(0,0,W,H);
+    const sp = RM ? .25 : 1;
+    // bokeh
+    for (const k of bokeh){
+      const x = ((k.x + Math.sin(t*.15+k.ph)*.02 + t*k.sx*sp) % 1.05 + 1.05) % 1.05 * W;
+      const y = ((k.y + Math.cos(t*.12+k.ph)*.02 + t*k.sy*sp) % 1.05 + 1.05) % 1.05 * H;
+      glow(x, y, k.r*(1+.15*Math.sin(t*.8+k.ph)), k.c, k.a*(.7+.3*Math.sin(t*.6+k.ph)));
+    }
+    // sparks
+    for (const s of sparks){ const a = .15 + .55*Math.pow(Math.max(0,Math.sin(t*s.sp+s.ph)),3); ctx.fillStyle = `rgba(200,235,255,${a})`; ctx.beginPath(); ctx.arc(s.x*W, s.y*H, s.r, 0, Math.PI*2); ctx.fill(); }
+    // light pulses on fibers
+    ctx.lineCap = "round";
+    for (const f of fibers){
+      const p = ((t*f.s*sp + f.o) % 1);
+      for (let j=10;j>=1;j--){
+        const q = p - j*.012; if (q < 0) continue;
+        const [x1,y1] = bez(f.p,q), [x2,y2] = bez(f.p,q+.012);
+        ctx.strokeStyle = `rgba(${f.c},${.5*(1-j/10)})`; ctx.lineWidth = f.r*(1-j/12);
+        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      }
+      const [x,y] = bez(f.p,p);
+      glow(x,y,f.r*7,f.c,.55); ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x,y,f.r,0,Math.PI*2); ctx.fill();
+    }
     core.x += (core.tx-core.x)*.04; core.y += (core.ty-core.y)*.04; core.r += (core.tr-core.r)*.04;
     const cx = core.x*W, cy = core.y*H, S = Math.min(W,H*1.78)*core.r;
     // glow
@@ -2666,6 +2710,10 @@ const BG = (() => {
       ctx.beginPath();
       ctx.ellipse(rx,0,rx,ry,0, Math.PI*2*o.from + Math.PI, Math.PI*2*o.to + Math.PI);
       ctx.stroke();
+      // travelling light on the arc
+      { const a0 = Math.PI*2*o.from + Math.PI, a1 = Math.PI*2*o.to + Math.PI, ph = (t*(.08+Math.abs(o.sp)*3)*sp + o.rot) % 1;
+        for (let j=0;j<6;j++){ const aa = a0 + (a1-a0)*Math.max(0, ph - j*.012); ctx.fillStyle = `rgba(${o.teal?"0,213,208":"200,240,255"},${.9*(1-j/6)})`; ctx.beginPath(); ctx.arc(rx+Math.cos(aa)*rx, Math.sin(aa)*ry, 2.4*(1-j/8), 0, Math.PI*2); ctx.fill(); }
+        const aa = a0 + (a1-a0)*ph; glow(rx+Math.cos(aa)*rx, Math.sin(aa)*ry, 12, o.teal?"0,213,208":"170,225,255", .5); }
       // end node
       const ea = Math.PI*2*o.to + Math.PI;
       ctx.fillStyle = o.teal ? "rgba(0,213,208,.9)" : "rgba(255,255,255,.9)";
@@ -2674,7 +2722,7 @@ const BG = (() => {
     }
     ctx.setLineDash([]);
     // stars
-    for (let i=0;i<40;i++){ const sx=(Math.sin(i*91.7)*.5+.5)*W, sy=(Math.cos(i*47.3)*.5+.5)*H; ctx.fillStyle=`rgba(150,210,255,${.15+.15*Math.sin(t+i)})`; ctx.fillRect(sx,sy,1.6,1.6); }
+
     // flyers -> nodes
     for (let i=flyers.length-1;i>=0;i--){
       const f = flyers[i]; f.t += 16.7;
