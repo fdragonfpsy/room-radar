@@ -376,6 +376,33 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 .stackplot{margin-right:2.5em}
 .cloud{margin-right:1.5em}
 .cloudfoot{margin-right:1.5em}
+
+/* ===== v3.1: modern AI bars (glass outline instead of stripes) ===== */
+.stk.ai .seg{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 30%,transparent),color-mix(in srgb,var(--c) 12%,transparent));
+  box-shadow:inset 0 0 0 1.5px var(--c),inset 0 0 1.4em color-mix(in srgb,var(--c) 30%,transparent),0 0 .8em color-mix(in srgb,var(--c) 22%,transparent);backdrop-filter:blur(3px)}
+.stk.ai .seg em{color:#fff;text-shadow:0 1px 6px rgba(2,3,49,.9)}
+.stk.ai .blab::before{content:"✦ ";color:var(--aqua)}
+.lg-ai{background:rgba(255,255,255,.12);border:1.5px solid #fff;box-shadow:0 0 .5em rgba(255,255,255,.35)}
+
+/* ===== v3.1: calmer motion ===== */
+.h-xl,.h-q,.rsum{transition:opacity .6s ease}
+.pxsoft{opacity:0!important;transition:none!important}
+.w.rise{display:inline-block;animation:wrise .6s cubic-bezier(.2,.9,.25,1) both;animation-delay:calc(var(--i,0)*45ms)}
+@keyframes wrise{from{opacity:0;transform:translateY(.35em);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
+
+/* ===== v3.1: closing = final cloud + thank you ===== */
+.endline{display:flex;justify-content:space-between;align-items:center;gap:1.5em;font-size:1.25em;color:var(--t2);max-height:0;opacity:0;overflow:hidden;transition:opacity .8s .4s,max-height .8s}
+.final .endline{max-height:4em;opacity:1;margin-top:.5em}
+.badge2{border:1px solid var(--line);border-radius:3em;padding:.45em 1.1em;background:rgba(2,3,49,.6);color:var(--t3);white-space:nowrap}
+.badge2 b{color:var(--aqua);font-weight:500}
+.final .cloudfoot{display:none}
+
+/* ===== v3.1: host bar close button ===== */
+.controls .xclose{font-size:1.05em;color:var(--t3);padding:.6em .9em;margin-left:.2em;border-left:1px solid var(--line);border-radius:0 2em 2em 0}
+.controls .xclose:hover{color:#fff;background:rgba(229,97,107,.25)}
+.controls #bExport{font-size:1.4em;padding:.45em .9em}
+
+.controls.closed,.controls.closed:hover{opacity:0!important;pointer-events:none}
 </style>
 </head>
 <body>
@@ -402,9 +429,10 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
     <button class="primary" id="bNext" title="Next (→ / Space)">Start ▶</button>
     <span class="sep"></span>
     <button id="bSetup" title="Setup: names, AI scores (S)">⚙ Setup</button>
-    <button id="bExport" title="Download Excel (E)">⬇ Excel</button>
+    <button id="bExport" title="Download all answers as Excel (E)" aria-label="Download Excel">⬇</button>
     <button id="bFull" title="Fullscreen (F)">⛶</button>
     <button id="bReset" title="New session (R)">↺</button>
+    <button id="bClose" class="xclose" title="Hide bar (Esc)" aria-label="Hide bar">✕</button>
   </div>
   <div class="conn" id="conn"><i></i><span>Connecting…</span></div>
 
@@ -428,7 +456,6 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
         <thead><tr><th>Criterion</th><th>AI · A</th><th>Why A (Excel only)</th><th>AI · B</th><th>Why B (Excel only)</th></tr></thead>
         <tbody id="sRows"></tbody>
       </table>
-      <label>Short bias note shown under the chart (max 120 characters)<input id="sBias" maxlength="120"></label>
       <div class="msg" id="sMsg"></div>
       <div class="btns">
         <button id="sPrompt" title="Copies an AI scoring prompt to your clipboard">Copy AI scoring prompt</button>
@@ -2789,13 +2816,13 @@ const CRIT = [
 const UCOL = { A:"#1DB8F2", B:"#F2B84B" };
 const CCOL = ["#1DB8F2","#00D5D0","#8F7BFF","#F2B84B"];   // OCM value · Feasibility · Adoption · Impact
 const OPT_COLORS = ["#1DB8F2","#00D5D0","#8F6BFF","#F2B84B","#FF7A9E","#7EE0A1"];
-const DEFAULT_BIAS = "AI scored with the prompt that built the prototype · bias possible";
+const DEFAULT_BIAS = "";
 const OLD_BIAS = "Bias note: the AI scored with the same prompt that helped build the prototype. It is one perspective, not the decision.";
 const BLOCK = ["fuck","shit","scheisse","scheiße","arsch","arschloch","idiot","wichser","bullshit","fick","hure","bitch"];
 
 const SEQ = [{q:0,phase:"lobby"}];
 for (let i=1;i<=4;i++){ SEQ.push({q:i,phase:"ci_vote"}); SEQ.push({q:i,phase:"ci_reveal"}); }
-["radar","break","uc_intro","uc_vote","uc_ai","uc_room","uc_matrix","co_collect","co_reveal","end"].forEach(p => SEQ.push({q:0,phase:p}));
+["radar","break","uc_intro","uc_vote","uc_ai","uc_room","uc_matrix","co_collect","end"].forEach(p => SEQ.push({q:0,phase:p}));
 const SECTION_OF = p => ["uc_intro","uc_vote","uc_ai","uc_room","uc_matrix"].includes(p) ? 2 : ["co_collect","co_reveal","end"].includes(p) ? 3 : p==="break" ? 0 : 1;
 
 /* ============ UTIL ============ */
@@ -3083,7 +3110,7 @@ const FX = (() => {
   }
   function morph(from, to, ms=900, o={}){
     if (RM || (!from.length && !to.length)) return;
-    const N = o.n || Math.min(5500, Math.max(to.length, 1400)), g = { n:N, sx:new Float32Array(N), sy:new Float32Array(N), tx:new Float32Array(N), ty:new Float32Array(N), dl:new Float32Array(N), px:new Float32Array(N), py:new Float32Array(N), col:new Uint8Array(N), t0:performance.now(), dur:ms, fadeAt:ms*1.02 };
+    const N = o.n || Math.min(5500, Math.max(to.length, 1400)), g = { amp: o.amp ?? .11, alpha: o.alpha ?? 1, n:N, sx:new Float32Array(N), sy:new Float32Array(N), tx:new Float32Array(N), ty:new Float32Array(N), dl:new Float32Array(N), px:new Float32Array(N), py:new Float32Array(N), col:new Uint8Array(N), t0:performance.now(), dur:ms, fadeAt:ms*1.02 };
     for (let i=0;i<N;i++){
       const a = from.length ? from[i%from.length] : o.origin ? [o.origin[0]+rnd(-o.spread,o.spread), o.origin[1]+rnd(-o.spread,o.spread)] : [rnd(0,W), rnd(0,H)];
       const b = to.length ? to[i%to.length] : [a[0]+rnd(-H*.3,H*.3), a[1]+rnd(-H*.3,H*.3)];
@@ -3098,10 +3125,10 @@ const FX = (() => {
       const g = groups[gi], el = now - g.t0; let a = 1; if (el > g.fadeAt) a = 1 - (el-g.fadeAt)/260; if (a <= 0){ groups.splice(gi,1); continue; }
       const tt = el/g.dur;
       for (let b=0;b<4;b++){
-        c.beginPath(); c.strokeStyle = COLS[b]; c.lineWidth = b ? 1.1 : 1.3; c.globalAlpha = a*(b ? .75 : .95);
+        c.beginPath(); c.strokeStyle = COLS[b]; c.lineWidth = b ? 1.1 : 1.3; c.globalAlpha = a*g.alpha*(b ? .75 : .95);
         for (let i=0;i<g.n;i++){ if (g.col[i] !== b) continue;
           const k = clamp((tt-g.dl[i])/(1-g.dl[i])), e = k<.5 ? 4*k*k*k : 1-Math.pow(-2*k+2,3)/2, sw = Math.sin(k*Math.PI);
-          const ang = (g.sy[i]*.006 + i*.0007) + k*5, x = lerp(g.sx[i],g.tx[i],e) + Math.cos(ang)*sw*H*.11, y = lerp(g.sy[i],g.ty[i],e) + Math.sin(ang)*sw*H*.11;
+          const ang = (g.sy[i]*.006 + i*.0007) + k*5, x = lerp(g.sx[i],g.tx[i],e) + Math.cos(ang)*sw*H*g.amp, y = lerp(g.sy[i],g.ty[i],e) + Math.sin(ang)*sw*H*g.amp;
           c.moveTo(g.px[i], g.py[i]); if (Math.abs(x-g.px[i]) + Math.abs(y-g.py[i]) < .5) c.lineTo(x+.9, y+.3); else c.lineTo(x, y); g.px[i] = x; g.py[i] = y;
         }
         c.stroke();
@@ -3196,7 +3223,7 @@ function exportXlsx(S, rows, cfg, active){
       tr+=r||0; ta+=a||0; to+=o||0;
       uc.push([u==="A"?cfg.ucA:cfg.ucB, CRIT[c].k, r2(r), s.n, a??"", (r!=null&&a!=null)?r2(r-a):"", r2(o), ...s.dist, cfg.why[u][c]||""]); }
     uc.push([u==="A"?cfg.ucA:cfg.ucB, "TOTAL (max 20)", r2(tr), "", r2(ta), r2(tr-ta), r2(to)]); uc.push([]); }
-  uc.push(["AI counts as", aiModeLabel(cfg.aiMode)]); for (const u of ["A","B"]) uc.push([`AI share of overall · ${u==="A"?cfg.ucA:cfg.ucB}`, Math.round(aiShare(cfg.aiMode, A.uc[u][0].n)*100)+"%"]); uc.push(["Bias note", cfg.bias]);
+  uc.push(["AI counts as", aiModeLabel(cfg.aiMode)]); for (const u of ["A","B"]) uc.push([`AI share of overall · ${u==="A"?cfg.ucA:cfg.ucB}`, Math.round(aiShare(cfg.aiMode, A.uc[u][0].n)*100)+"%"]);
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(uc), "Solution rating");
   const co = [["Word","Count","Hidden on screen","Spellings merged"]]; A.words.forEach(w => co.push([w.text, w.count, (w.hidden||w.blocked)?"yes":"", [...w.forms.entries()].map(([f,n])=>`${f} (${n})`).join(", ")]));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(co), "Check-out words");
@@ -3217,9 +3244,9 @@ function startHost(){
   const stage = $("#stage"), TTL = ".h-xl, .h-q, .rsum";
 
   const seqIndex = () => Math.max(0, SEQ.findIndex(s => s.q===S.q && s.phase===S.phase));
-  const LABEL = { lobby:"Lobby", ci_vote:"voting", ci_reveal:"results", radar:"Room Radar", break:"Break", uc_intro:"Rating · intro", uc_vote:"Rating · voting", uc_ai:"Rating · AI view", uc_room:"Rating · room vs AI", uc_matrix:"Rating · overall", co_collect:"Check-out · live cloud", co_reveal:"Check-out · final", end:"End" };
+  const LABEL = { lobby:"Lobby", ci_vote:"voting", ci_reveal:"results", radar:"Room Radar", break:"Break", uc_intro:"Rating · intro", uc_vote:"Rating · voting", uc_ai:"Rating · AI view", uc_room:"Rating · room vs AI", uc_matrix:"Rating · overall", co_collect:"Check-out · live cloud", co_reveal:"Closing", end:"Closing" };
   const labelFor = s => s.phase.startsWith("ci_") ? `Q${s.q} · ${LABEL[s.phase]}` : LABEL[s.phase];
-  const NEXT = { radar:"Room Radar", break:"Break", uc_intro:"Rating intro", uc_vote:"Open rating", uc_ai:"AI view", uc_room:"Room vs AI", uc_matrix:"Overall", co_collect:"Check-out (live)", co_reveal:"Final cloud", end:"Finish" };
+  const NEXT = { radar:"Room Radar", break:"Break", uc_intro:"Rating intro", uc_vote:"Open rating", uc_ai:"AI view", uc_room:"Room vs AI", uc_matrix:"Overall", co_collect:"Check-out (live)", end:"Closing" };
   function nextLabel(){ const n = SEQ[seqIndex()+1]; if (!n) return "End"; return n.phase==="ci_vote" ? `Q${n.q} ▶` : n.phase==="ci_reveal" ? "Reveal ▶" : NEXT[n.phase] + " ▶"; }
   function setConn(ok, text){ const el = $("#conn"); el.classList.toggle("off", !ok); el.querySelector("span").textContent = text; }
   const ucName = u => u==="A" ? CFGD.ucA : CFGD.ucB;
@@ -3229,7 +3256,6 @@ function startHost(){
     const key = S.session+"|"+S.q+"|"+S.phase+(["uc_intro","uc_vote","uc_ai","uc_room","uc_matrix"].includes(S.phase) ? "|"+CFGD.ucA+"|"+CFGD.ucB+"|"+JSON.stringify(CFGD.ai)+"|"+CFGD.bias : "");
     if (key === sceneKey && !force) return updateScene();
     const prev = sceneKey.split("|"); sceneKey = key;
-    const fromPts = FX.sample(stage.querySelector(TTL), 5000);
     if (prev[1] !== String(S.q) || prev[0] !== S.session || prev[2] !== S.phase && !(prev[2]==="ci_vote" && S.phase==="ci_reveal") && !(prev[2]==="uc_vote") ) { BG.clearNodes(); lastCount = 0; }
     BG.setColorMode(S.phase === "ci_reveal");
     $("#cState").textContent = labelFor(S); $("#bNext").textContent = nextLabel();
@@ -3281,21 +3307,23 @@ function startHost(){
         ${["A","B"].map(u=>`<div class="uccard"><span class="tag2" style="background:${UCOL[u]}">${u}</span><div class="nm">${esc(ucName(u))}</div></div>`).join("")}
         <div class="critgrid">${CRIT.map((c,i)=>`<div class="crit"><b>${i+1} · ${esc(c.k)}</b><span>${esc(c.q)}</span></div>`).join("")}</div>
         <div class="note">Scale 1–5 · blind and anonymous · the AI's assessment is revealed after your vote</div></section>`;
-    } else if (P === "co_collect" || P === "co_reveal"){
-      const fin = P === "co_reveal", ex = stage.querySelector(".cloudscene");
+    } else if (P === "co_collect" || P === "co_reveal" || P === "end"){
+      const fin = P !== "co_collect", ex = stage.querySelector(".cloudscene");
+      const EB = fin ? "Thank you · AI-Accelerated OCM Night" : "Section 3 · Check-out · live", NT = fin ? "What stays with us from tonight" : "Your check-out in three words";
       BG.place(.9,.6,.45);
-      if (ex && ["co_collect","co_reveal"].includes(prev[2]) && prev[0] === S.session){
+      if (ex && ["co_collect","co_reveal","end"].includes(prev[2]) && prev[0] === S.session){
         ex.classList.toggle("final", fin); const hq = ex.querySelector(".h-q"), eb = ex.querySelector(".eyebrow");
-        eb.textContent = fin ? "Section 3 · Check-out · final" : "Section 3 · Check-out · live"; decrypt(eb);
-        const nt = fin ? "What stays with us from tonight" : "Your check-out in three words";
-        if (hq.textContent !== nt){ const fp = FX.sample(hq, 5000); hq.textContent = nt; delete hq.dataset.split; splitWords(hq); const tp = FX.sample(hq, 5000); if (tp.length){ hq.classList.add("pxhide"); FX.morph(fp, tp, 850); setTimeout(() => hq.classList.remove("pxhide"), 780); } }
+        eb.textContent = EB;
+        if (hq.textContent !== NT){ hq.textContent = NT; delete hq.dataset.split; rise(hq); }
+        if (fin) BG.spawn(8, null);
         cloudSig = ""; return updateScene();
       }
       cloudEls.clear(); cloudSig = "";
-      stage.innerHTML = `<section class="scene cloudscene ${fin?"final":""}"><div class="cloudhead"><div><span class="eyebrow">${fin ? "Section 3 · Check-out · final" : "Section 3 · Check-out · live"}</span>
-          <div class="h-q">${fin ? "What stays with us from tonight" : "Your check-out in three words"}</div></div>
+      stage.innerHTML = `<section class="scene cloudscene ${fin?"final":""}"><div class="cloudhead"><div><span class="eyebrow">${EB}</span>
+          <div class="h-q">${NT}</div></div>
           <div class="cchip"><b id="vn">0</b><span id="vof">check-outs</span><i class="ring2"><i id="vr"></i></i></div></div>
-        <div class="cloud" id="cloud"></div><div class="cloudfoot" id="cfoot"></div></section>`;
+        <div class="cloud" id="cloud"></div><div class="cloudfoot" id="cfoot"></div>
+        <div class="endline"><span id="endstats"></span><span class="badge2">Room Radar was built with AI by <b>Capgemini Invent</b> · vibe-coded for tonight</span></div></section>`;
     } else if (P === "uc_vote"){
       const uc = true;
       BG.place(.79,.55,1.05);
@@ -3313,10 +3341,8 @@ function startHost(){
       if (ex && ["uc_ai","uc_room","uc_matrix"].includes(prev[2]) && prev[0] === S.session){
         ex.className = "scene ucres2 s"+stage3;
         const eb = ex.querySelector(".uchead .eyebrow"), hq = ex.querySelector(".uchead .h-q");
-        eb.textContent = "Section 2 · " + (stage3===1?"AI view":stage3===2?"Room vs AI":"Overall"); decrypt(eb);
-        if (hq.textContent !== title){ const fp = FX.sample(hq, 5000); hq.textContent = title; delete hq.dataset.split; splitWords(hq); const tp = FX.sample(hq, 5000);
-          if (tp.length){ hq.classList.add("pxhide"); FX.morph(fp, tp, 850); setTimeout(() => hq.classList.remove("pxhide"), 780); } }
-        const bm = ex.querySelector("#biasm"); if (bm) bm.textContent = CFGD.bias;
+        eb.textContent = "Section 2 · " + (stage3===1?"AI view":stage3===2?"Room vs AI":"Overall");
+        if (hq.textContent !== title){ hq.textContent = title; delete hq.dataset.split; rise(hq); }
         ex.querySelectorAll(".case").forEach(c => { const u = c.dataset.u; c.querySelector(".cname").innerHTML = `<span style="background:${UCOL[u]}">${u}</span>${esc(ucName(u))}`; });
         return updateScene();
       }
@@ -3328,29 +3354,29 @@ function startHost(){
         <div class="legend2">${CRIT.map((c,i)=>`<span><i style="background:${CCOL[i]}"></i>${esc(c.s)}</span>`).join("")}<span class="sp"></span><span><i class="lg-ai"></i>AI</span><span><i class="lg-room"></i>Room</span><span><i class="lg-all"></i>Overall</span></div>
         <div class="stackplot"><div class="gridbox">${[0,5,10,15,20].map(v=>`<div class="gl" style="bottom:${v*5}%"><span>${v}</span></div>`).join("")}</div>
           ${["A","B"].map(u=>`<div class="case" data-u="${u}">${col(u,"ai","AI")}${col(u,"room","Room")}${col(u,"all","Overall")}<div class="cname"><span style="background:${UCOL[u]}">${u}</span>${esc(ucName(u))}</div></div>`).join("")}</div>
-        <div class="ucline"><span class="tag">Auto-insight</span><span id="ucl"></span><span class="biasmini" id="biasm">${esc(CFGD.bias)}</span></div>
+        <div class="ucline"><span class="tag">Auto-insight</span><span id="ucl"></span></div>
       </section>`;
       stage.querySelectorAll(".wseg button").forEach(b => b.onclick = () => { cfgLock = Date.now() + 4000; CFGD = { ...CFGD, aiMode: b.dataset.m }; setStacks(); saveCfg(CFGD); });
-      sceneFx(fromPts);
+      sceneFx();
       requestAnimationFrame(() => requestAnimationFrame(() => updateScene()));
       return;
-    } else if (P === "end"){
-      BG.place(.75,.55,1.1);
-      stage.innerHTML = `<section class="scene"><div class="endscene">
-          <div class="eyebrow">Thank you</div>
-          <div class="h-xl">From inspiration to <span class="grad-text">tangible</span> solutions</div>
-          <div class="sub">${A.joined} people · ${A.ucVoters} solution ratings · ${A.coVoters} check-outs. Let's keep building.</div>
-          <div class="badge" style="position:static;font-size:1.3em">Room Radar was built with AI by <b>Capgemini Invent</b> · vibe-coded for tonight</div></div></section>`;
     }
-    sceneFx(fromPts);
+    sceneFx();
     updateScene();
   }
   // headline forms out of the particles of the previous one; small labels decrypt
-  function sceneFx(fromPts){
+  // calm by default: title words rise in one after another. Only the five section openers form out of soft light particles.
+  const OPENERS = ["lobby","break","uc_intro","co_collect","end"];
+  function rise(el){ if (!el) return; splitWords(el); el.querySelectorAll(".w").forEach((w,i) => { w.style.setProperty("--i", i); w.classList.remove("rise"); void w.offsetWidth; w.classList.add("rise"); }); }
+  function sceneFx(){
     const ttl = stage.querySelector(TTL); if (!ttl) return;
-    splitWords(ttl); const toPts = FX.sample(ttl, 5000);
-    if (toPts.length){ ttl.classList.add("pxhide"); FX.morph(fromPts, toPts, 850); setTimeout(() => ttl.classList.remove("pxhide"), 780); }
-    stage.querySelectorAll(".eyebrow").forEach(e => decrypt(e));
+    if (OPENERS.includes(S.phase) && !RM){
+      splitWords(ttl); const toPts = FX.sample(ttl, 1800);
+      if (toPts.length){ const r = ttl.getBoundingClientRect(); ttl.classList.add("pxsoft");
+        FX.morph([], toPts, 700, { origin:[r.left + r.width/2, r.top + r.height/2], spread: r.height*.9, n: Math.min(1600, toPts.length), amp:.025, alpha:.55 });
+        setTimeout(() => ttl.classList.remove("pxsoft"), 520); }
+      stage.querySelectorAll(".eyebrow").forEach(e => decrypt(e, 420));
+    } else rise(ttl);
   }
 
   function radarSvg(A){
@@ -3378,7 +3404,8 @@ function startHost(){
   const cloudEls = new Map(); let measurer = null;
   function renderCloud(){
     const box = $("#cloud"); if (!box) return;
-    const fin = S.phase === "co_reveal";
+    const fin = S.phase !== "co_collect";
+    const es = $("#endstats"); if (es) es.textContent = `${A.joined} people · ${A.ucVoters} solution ratings · ${A.coVoters} check-outs`;
     const list = A.words.filter(w => !w.hidden && !w.blocked).slice(0, 70);
     const hid = A.words.filter(w => w.hidden || w.blocked);
     const sig = (fin?"F":"L") + list.map(w=>w.key+":"+w.count).join(",") + "|" + box.clientWidth + "x" + box.clientHeight;
@@ -3424,7 +3451,7 @@ function startHost(){
     // new words fly in from the light fibres; at most a few bursts at once
     fresh.forEach((el, i) => {
       if (i < 5 && !RM){ el.classList.add("pxhide", "in"); const pts = FX.sample(el, 1100); const o = BG.tipPoint();
-        FX.morph([], pts, 700, { origin:o, spread: FX.dims()[1]*.06, n: 900 }); setTimeout(() => el.classList.remove("pxhide"), 640 + i*60); }
+        FX.morph([], pts, 700, { origin:o, spread: FX.dims()[1]*.05, n: 700, amp:.04, alpha:.75 }); setTimeout(() => el.classList.remove("pxhide"), 640 + i*60); }
       else setTimeout(() => el.classList.add("in"), 60 + i*45);
     });
   }
@@ -3481,7 +3508,7 @@ function startHost(){
       if (P === "ci_vote"){ const vn=$("#vn"); if (vn) vn.textContent=t; const vr=$("#vr"); if (vr) vr.style.width=(A.joined?Math.min(100,t*100/A.joined):0)+"%"; const vof=$("#vof"); if (vof) vof.textContent = A.joined?`of ${A.joined} in the room`:""; }
       else { const max = Math.max(...c); stage.querySelectorAll(".opt").forEach(row => { const i=+row.dataset.i; row.querySelector(".fill").style.width=(t?Math.max(2,c[i]*100/Math.max(1,max)):0)+"%"; row.querySelector(".p").textContent=pct(c[i],t)+"%"; row.classList.toggle("top", t>0&&c[i]===max); }); }
       if (t > lastCount){ ROWS.filter(r=>r.item==="ci"+S.q).slice(lastCount).slice(0,12).forEach(r => BG.spawn(1, r.num)); lastCount = t; }
-    } else if (P === "uc_vote" || P === "co_collect" || P === "co_reveal"){
+    } else if (P === "uc_vote" || P === "co_collect" || P === "co_reveal" || P === "end"){
       if (P !== "uc_vote") renderCloud();
       const t = P==="uc_vote" ? A.ucVoters : A.coVoters, base = Math.max(t, ACTIVE!=null && ACTIVE>0 ? ACTIVE : A.joined);
       const vn=$("#vn"); if (vn) vn.textContent=t; const vr=$("#vr"); if (vr) vr.style.width=(base?Math.min(100,t*100/base):0)+"%";
@@ -3527,7 +3554,7 @@ function startHost(){
 
   // setup panel
   function openSetup(){
-    $("#sA").value = CFGD.ucA === "Solution A" ? "" : CFGD.ucA; $("#sB").value = CFGD.ucB === "Solution B" ? "" : CFGD.ucB; $("#sBias").value = CFGD.bias;
+    $("#sA").value = CFGD.ucA === "Solution A" ? "" : CFGD.ucA; $("#sB").value = CFGD.ucB === "Solution B" ? "" : CFGD.ucB; 
     const pick = (id, v) => `<div class="pick" id="${id}" data-v="${v||""}">${[1,2,3,4,5].map(n=>`<button type="button" data-n="${n}" class="${v===n?"on":""}">${n}</button>`).join("")}</div>`;
     $("#sRows").innerHTML = CRIT.map((c,i)=>`<tr><td><b>${esc(c.k)}</b><br><span style="color:var(--t4);font-size:12px">${esc(c.q)}</span></td>
       <td>${pick("aA"+i, CFGD.ai.A[i])}</td><td><textarea id="wA${i}" maxlength="240">${esc(CFGD.why.A[i])}</textarea></td>
@@ -3538,7 +3565,7 @@ function startHost(){
   }
   $("#sClose").onclick = () => $("#setup").hidden = true;
   $("#sSave").onclick = async () => {
-    const c = { ...CFGD, ucA: $("#sA").value.trim() || "Solution A", ucB: $("#sB").value.trim() || "Solution B", bias: $("#sBias").value.trim() || DEFAULT_BIAS,
+    const c = { ...CFGD, ucA: $("#sA").value.trim() || "Solution A", ucB: $("#sB").value.trim() || "Solution B", 
       ai:{ A:[0,1,2,3].map(i=>+$("#aA"+i).dataset.v||null), B:[0,1,2,3].map(i=>+$("#aB"+i).dataset.v||null) },
       why:{ A:[0,1,2,3].map(i=>$("#wA"+i).value.trim()), B:[0,1,2,3].map(i=>$("#wB"+i).value.trim()) } };
     $("#sMsg").textContent = "Saving…";
@@ -3564,7 +3591,11 @@ function startHost(){
     else if (e.key==="e" || e.key==="E") doExport();
   });
   // host bar only appears when the mouse is near the bottom edge, so it never covers content by accident
-  let hideT; addEventListener("mousemove", e => { if (e.clientY < innerHeight*.82 && !e.target.closest("#controls")) return;
+  const hideBar = () => { clearTimeout(hideT); const c = $("#controls"); c.classList.remove("show"); c.classList.add("closed"); barClosed = Date.now(); };
+  let barClosed = 0;
+  $("#bClose").onclick = e => { e.stopPropagation(); hideBar(); };
+  addEventListener("keydown", e => { if (e.key === "Escape") hideBar(); });
+  let hideT; addEventListener("mousemove", e => { if (Date.now() - barClosed < 1200) return; $("#controls").classList.remove("closed"); if (e.clientY < innerHeight*.82 && !e.target.closest("#controls")) return;
     $("#controls").classList.add("show"); clearTimeout(hideT); hideT = setTimeout(()=>$("#controls").classList.remove("show"), 2500); });
   addEventListener("resize", () => { cloudSig = ""; });
 
