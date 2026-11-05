@@ -403,6 +403,50 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 .controls #bExport{font-size:1.4em;padding:.45em .9em}
 
 .controls.closed,.controls.closed:hover{opacity:0!important;pointer-events:none}
+
+/* ===== v3.2: closing pulse (phone sliders) ===== */
+.slq{border:1px solid var(--line);border-radius:14px;padding:12px 14px 8px;background:rgba(6,12,60,.65);transition:border-color .3s}
+.slq:not(.unset){border-color:rgba(0,213,208,.55)}
+.slt{font-size:15px;line-height:1.35;color:var(--t1);margin-bottom:8px}
+.slrow{display:flex;align-items:center;gap:12px}
+.slrow output{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:17px;background:var(--grad);color:var(--navy);transition:transform .2s}
+.slq.unset .slrow output{background:rgba(255,255,255,.08);color:var(--t3)}
+.slrow input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:30px;background:transparent;--p:55.5%}
+.slrow input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:8px;background:linear-gradient(90deg,#1DB8F2,#00D5D0) 0/var(--p) 100% no-repeat,rgba(255,255,255,.14)}
+.slrow input[type=range]::-moz-range-track{height:8px;border-radius:8px;background:rgba(255,255,255,.14)}
+.slrow input[type=range]::-moz-range-progress{height:8px;border-radius:8px;background:linear-gradient(90deg,#1DB8F2,#00D5D0)}
+.slrow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#fff;margin-top:-10px;box-shadow:0 0 0 4px rgba(0,213,208,.35),0 0 16px rgba(0,213,208,.7)}
+.slrow input[type=range]::-moz-range-thumb{width:28px;height:28px;border:0;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(0,213,208,.35),0 0 16px rgba(0,213,208,.7)}
+.slq.unset .slrow input[type=range]::-webkit-slider-runnable-track{background:rgba(255,255,255,.14)}
+.slq.unset .slrow input[type=range]::-webkit-slider-thumb{background:rgba(255,255,255,.55);box-shadow:0 0 0 4px rgba(255,255,255,.08);animation:nudge 1.6s ease-in-out infinite}
+@keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(6px)}}
+
+/* ===== v3.2: closing gauges on the beamer ===== */
+.endline{align-items:flex-end}
+.gauges{display:flex;gap:2.2em}
+.gauge{display:flex;align-items:center;gap:.8em;background:rgba(2,3,49,.62);border:1px solid var(--line);border-radius:3em;padding:.35em 1.3em .35em .4em;backdrop-filter:blur(6px)}
+.gauge svg{width:3.6em;height:3.6em;transform:rotate(-90deg)}
+.gauge .gt{fill:none;stroke:rgba(255,255,255,.12);stroke-width:10}
+.gauge .gv{fill:none;stroke:url(#none);stroke:#00D5D0;stroke-width:10;stroke-linecap:round;transition:stroke-dasharray 1.4s cubic-bezier(.2,.9,.25,1);filter:drop-shadow(0 0 6px rgba(0,213,208,.7))}
+.gauge b{font-size:2.2em;font-weight:700;min-width:1.7em;font-variant-numeric:tabular-nums}
+.gauge span{display:flex;flex-direction:column;font-size:1.05em;color:var(--t1);line-height:1.25}
+.gauge small{font-size:.85em;color:var(--t3)}
+.endright{display:flex;flex-direction:column;align-items:flex-end;gap:.5em}
+.endright #endstats{font-size:.95em;color:var(--t3)}
+
+/* gauges v2: value inside the ring, single-line labels, room to breathe */
+.final .endline{max-height:9em}
+.gauge{padding:.45em 1.5em .45em .45em;gap:1em}
+.gring{position:relative;width:4.6em;height:4.6em;flex:none}
+.gring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.gring b{position:absolute;inset:0;display:grid;place-items:center;font-size:1.55em;min-width:0}
+.gauge span{white-space:nowrap;font-size:1.2em;font-weight:500}
+.gauge small{font-weight:400}
+.endright{margin-right:clamp(2em,9vw,11em)}
+.endright .badge2{font-size:.85em}
+/* event-day: reserve the closing line's space already in the live cloud, so the cloud never shrinks when the gauges appear */
+.cloudscene .endline{max-height:9em;visibility:hidden;opacity:0;margin-top:.5em}
+.cloudscene.final .endline{visibility:visible;opacity:1}
 </style>
 </head>
 <body>
@@ -420,7 +464,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
   <main id="stage"></main>
   <div class="controls" id="controls">
     <button class="sec" data-jump="lobby" title="Section 1: Check-in">1 Check-in</button>
-    <button class="sec" data-jump="break" title="Hackathon break screen">☕ Break</button>
+    <button class="sec" data-jump="break" title="Holding screen while you continue in PowerPoint (hackathon &amp; gallery walk). Phones stay connected.">↩ Back to deck</button>
     <button class="sec" data-jump="uc_intro" title="Section 2: Rate the solutions">2 Rating</button>
     <button class="sec" data-jump="co_collect" title="Section 3: Check-out">3 Check-out</button>
     <span class="sep"></span>
@@ -2809,11 +2853,17 @@ const CI = [
 ];
 const CRIT = [
   { k:"OCM value",   s:"OCM value",   q:"How strongly does the solution improve a concrete OCM activity (speed, quality, trust)?" },
-  { k:"Feasibility", s:"Feasibility", q:"How realistic is implementation, incl. complexity and resources? (5 = easy to realise)" },
+  { k:"Feasibility", s:"Feasibility", q:"How realistic is implementation, incl. complexity and resources? (5 = easy to realize)" },
   { k:"Adoption",    s:"Adoption",    q:"How likely will the target groups use and trust the solution?" },
   { k:"Stakeholder & end-user impact", s:"Impact", q:"How strongly does the solution affect end users and stakeholders?" }
 ];
 const UCOL = { A:"#1DB8F2", B:"#F2B84B" };
+// closing pulse: two quick 0–10 sliders on the check-out screen (fb1 = NPS question)
+const FB = [
+  { k:"Would recommend", q:"How likely are you to recommend an evening like tonight, incl. the hackathon, to a colleague?", lo:"not at all", hi:"extremely likely", nps:true },
+  { k:"Try within 4 weeks", q:"How likely are you to try one idea from tonight within the next 4 weeks?", lo:"unlikely", hi:"for sure" }
+];
+const npsOf = dist => { const n = dist.reduce((a,b)=>a+b,0); if (!n) return null; const pro = dist[9]+dist[10], det = dist.slice(0,7).reduce((a,b)=>a+b,0); return { n, pro, pas:n-pro-det, det, nps: Math.round((pro-det)/n*100) }; };
 const CCOL = ["#1DB8F2","#00D5D0","#8F7BFF","#F2B84B"];   // OCM value · Feasibility · Adoption · Impact
 const OPT_COLORS = ["#1DB8F2","#00D5D0","#8F6BFF","#F2B84B","#FF7A9E","#7EE0A1"];
 const DEFAULT_BIAS = "";
@@ -2920,7 +2970,7 @@ async function rpc(fn, args){ const r = await api("rpc/"+fn, { method:"POST", bo
 
 /* ============ AGGREGATION ============ */
 function aggregate(rows, cfg){
-  const joined = new Set(), ci = {}, ciTot = {}, uc = {A:[],B:[]}, ucVoters = new Set(), coVoters = new Set(), words = new Map();
+  const joined = new Set(), ci = {}, ciTot = {}, uc = {A:[],B:[]}, ucVoters = new Set(), coVoters = new Set(), words = new Map(), fb = [0,1].map(() => ({ sum:0, n:0, dist:new Array(11).fill(0) }));
   for (let i=1;i<=4;i++){ ci[i] = new Array(CI[i].opts.length).fill(0); ciTot[i]=0; }
   for (const u of ["A","B"]) for (let c=0;c<4;c++) uc[u][c] = { sum:0, n:0, dist:[0,0,0,0,0] };
   const hidden = new Set((cfg && cfg.hidden) || []);
@@ -2930,6 +2980,8 @@ function aggregate(rows, cfg){
     if (m){ const q=+m[1]; if (ci[q][r.num] !== undefined){ ci[q][r.num]++; ciTot[q]++; } continue; }
     const u = /^u([AB])([1-4])$/.exec(r.item);
     if (u){ const s = uc[u[1]][+u[2]-1]; if (r.num>=1 && r.num<=5){ s.sum+=r.num; s.n++; s.dist[r.num-1]++; ucVoters.add(r.device); } continue; }
+    const f = /^fb([12])$/.exec(r.item);
+    if (f){ const s = fb[+f[1]-1]; if (r.num>=0 && r.num<=10){ s.sum += r.num; s.n++; s.dist[r.num]++; coVoters.add(r.device); } continue; }
     if (/^co[1-3]$/.test(r.item) && r.txt){
       coVoters.add(r.device);
       const k0 = wordKey(r.txt); if (!k0) continue; const cn = CANON.get(k0), k = cn ? cn.key : k0;
@@ -2948,7 +3000,7 @@ function aggregate(rows, cfg){
     }
   }
   const wl = [...words.values()].map(w => ({ ...w, text: w.canon || pickForm(w.forms, w.key) })).sort((a,b)=>b.count-a.count);
-  return { joined: joined.size, ci, ciTot, uc, avg, ucVoters: ucVoters.size, coVoters: coVoters.size, words: wl };
+  return { joined: joined.size, ci, ciTot, uc, avg, ucVoters: ucVoters.size, coVoters: coVoters.size, words: wl, fb: fb.map(x => ({ ...x, avg: x.n ? x.sum/x.n : null })) };
 }
 const rankedIdx = arr => arr.map((n,i)=>({n,i})).sort((a,b)=>b.n-a.n);
 function ciInsight(q, A){
@@ -3163,7 +3215,7 @@ const Demo = (() => {
   let state = { session:"demo-"+uid().slice(0,6), q:0, phase:"lobby" }, rows = [], devices = [], target = 14 + (Math.random()*4|0);
   let cfg = normCfg({ ucA:"Change Story Generator", ucB:"Training Needs Navigator", ai:{A:[4,3,4,4],B:[4,4,3,3]},
     why:{A:["Speeds up drafting of audience-specific change stories.","Needs approved data sources and review loops.","Familiar format, low learning effort.","Visible for many employees via clearer messages."],
-         B:["Directly targets a real training bottleneck.","Works with existing training catalogues.","Depends on trust in recommendations.","Strong for end users, moderate for leaders."]}, hidden:[] });
+         B:["Directly targets a real training bottleneck.","Works with existing training catalogs.","Depends on trust in recommendations.","Strong for end users, moderate for leaders."]}, hidden:[] });
   const WORDS = ["inspiring","prototype","human checkpoints","speed","trust","co-creation","adoption","energy","learning","experiment","AI literacy","courage","pilot","feasible","inspiring","speed","trust","prototype","fun","clarity"];
   const pick = w => { const s=w.reduce((a,b)=>a+b,0); let r=Math.random()*s; for (let i=0;i<w.length;i++){ r-=w[i]; if (r<=0) return i; } return 0; };
   const has = (item,d) => rows.some(r => r.item===item && r.device===d);
@@ -3174,7 +3226,9 @@ const Demo = (() => {
     if (p==="uc_vote"){ devices.filter(d=>!has("uA1",d)).slice(0, Math.random()<.6?1+(Math.random()*2|0):0).forEach(d => {
       for (const u of ["A","B"]) for (let c=0;c<4;c++){ const base = cfg.ai[u][c] + (u==="A"&&c===1 ? -1.4 : 0) + (u==="B"&&c===2 ? .8 : 0); rows.push({item:"u"+u+(c+1), num: Math.max(1,Math.min(5,Math.round(base + (Math.random()*2-1)))), device:d, created_at:new Date().toISOString()}); } }); }
     if (p==="co_collect"){ devices.filter(d=>!has("co1",d)).slice(0, Math.random()<.6?1+(Math.random()*2|0):0).forEach(d => {
-      for (let i=1;i<=3;i++) rows.push({item:"co"+i, txt: WORDS[Math.random()*WORDS.length|0], device:d, created_at:new Date().toISOString()}); }); }
+      for (let i=1;i<=3;i++) rows.push({item:"co"+i, txt: WORDS[Math.random()*WORDS.length|0], device:d, created_at:new Date().toISOString()});
+      rows.push({item:"fb1", num: Math.max(0,Math.min(10,Math.round(8.3+(Math.random()*4-2.3)))), device:d, created_at:new Date().toISOString()});
+      rows.push({item:"fb2", num: Math.max(0,Math.min(10,Math.round(7.5+(Math.random()*4-2.5)))), device:d, created_at:new Date().toISOString()}); }); }
   }
   return { get state(){ return state; }, get rows(){ return rows; }, get cfg(){ return cfg; }, step,
     set(q,phase,newSession){ state = { ...state, q, phase }; if (newSession){ state.session="demo-"+uid().slice(0,6); rows=[]; devices=[]; target=14+(Math.random()*4|0); } },
@@ -3201,11 +3255,13 @@ function exportXlsx(S, rows, cfg, active){
     if ((m=/^ci([1-4])$/.exec(item))) return "Check-in Q"+m[1]+": "+CI[+m[1]].q;
     if ((m=/^u([AB])([1-4])$/.exec(item))) return "Rating "+(m[1]==="A"?cfg.ucA:cfg.ucB)+" · "+CRIT[+m[2]-1].k;
     if ((m=/^co([1-3])$/.exec(item))) return "Check-out word "+m[1];
+    if ((m=/^fb([12])$/.exec(item))) return "Pulse: "+FB[+m[1]-1].q+" (0–10)";
     return item; };
   const value = r => { let m;
     if ((m=/^ci([1-4])$/.exec(r.item))) return CI[+m[1]].opts[r.num] ?? r.num;
     if (/^u[AB][1-4]$/.test(r.item)) return r.num;
     if (/^co[1-3]$/.test(r.item)) return r.txt;
+    if (/^fb[12]$/.test(r.item)) return r.num;
     return ""; };
   const devMap = new Map(); const devId = d => { if (!devMap.has(d)) devMap.set(d, "P"+String(devMap.size+1).padStart(2,"0")); return devMap.get(d); };
   const ov = [["Room Radar · AI-Accelerated OCM Night · Siemens × Capgemini Invent"],[],
@@ -3227,6 +3283,12 @@ function exportXlsx(S, rows, cfg, active){
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(uc), "Solution rating");
   const co = [["Word","Count","Hidden on screen","Spellings merged"]]; A.words.forEach(w => co.push([w.text, w.count, (w.hidden||w.blocked)?"yes":"", [...w.forms.entries()].map(([f,n])=>`${f} (${n})`).join(", ")]));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(co), "Check-out words");
+  const fbs = [["Question","Average (0–10)","Answers (n)","0","1","2","3","4","5","6","7","8","9","10"]];
+  A.fb.forEach((s,i) => fbs.push([FB[i].q, s.avg==null ? "" : Math.round(s.avg*100)/100, s.n, ...s.dist]));
+  const N = npsOf(A.fb[0].dist); fbs.push([],["Net Promoter Score (recommend question)"],
+    ["NPS (−100 to +100)", N ? N.nps : ""],["Promoters (9–10)", N ? N.pro : "", N ? pct(N.pro,N.n)+"%" : ""],["Passives (7–8)", N ? N.pas : "", N ? pct(N.pas,N.n)+"%" : ""],["Detractors (0–6)", N ? N.det : "", N ? pct(N.det,N.n)+"%" : ""],
+    ["Note","NPS = % promoters − % detractors. German audiences tend to rate conservatively (7–8 = good), so read NPS together with the average."]);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(fbs), "Closing pulse");
   const raw = [["Time","Participant","Item","Question / criterion","Answer"]];
   rows.forEach(r => raw.push([r.created_at ? new Date(r.created_at).toLocaleString() : "", devId(r.device), r.item, label(r.item), value(r)]));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(raw), "All answers");
@@ -3244,9 +3306,9 @@ function startHost(){
   const stage = $("#stage"), TTL = ".h-xl, .h-q, .rsum";
 
   const seqIndex = () => Math.max(0, SEQ.findIndex(s => s.q===S.q && s.phase===S.phase));
-  const LABEL = { lobby:"Lobby", ci_vote:"voting", ci_reveal:"results", radar:"Room Radar", break:"Break", uc_intro:"Rating · intro", uc_vote:"Rating · voting", uc_ai:"Rating · AI view", uc_room:"Rating · room vs AI", uc_matrix:"Rating · overall", co_collect:"Check-out · live cloud", co_reveal:"Closing", end:"Closing" };
+  const LABEL = { lobby:"Lobby", ci_vote:"voting", ci_reveal:"results", radar:"Room Radar", break:"Back to deck", uc_intro:"Rating · intro", uc_vote:"Rating · voting", uc_ai:"Rating · AI view", uc_room:"Rating · room vs AI", uc_matrix:"Rating · overall", co_collect:"Check-out · live cloud", co_reveal:"Closing", end:"Closing" };
   const labelFor = s => s.phase.startsWith("ci_") ? `Q${s.q} · ${LABEL[s.phase]}` : LABEL[s.phase];
-  const NEXT = { radar:"Room Radar", break:"Break", uc_intro:"Rating intro", uc_vote:"Open rating", uc_ai:"AI view", uc_room:"Room vs AI", uc_matrix:"Overall", co_collect:"Check-out (live)", end:"Closing" };
+  const NEXT = { radar:"Room Radar", break:"Back to deck", uc_intro:"Rating intro", uc_vote:"Open rating", uc_ai:"AI view", uc_room:"Room vs AI", uc_matrix:"Overall", co_collect:"Check-out (live)", end:"Closing" };
   function nextLabel(){ const n = SEQ[seqIndex()+1]; if (!n) return "End"; return n.phase==="ci_vote" ? `Q${n.q} ▶` : n.phase==="ci_reveal" ? "Reveal ▶" : NEXT[n.phase] + " ▶"; }
   function setConn(ok, text){ const el = $("#conn"); el.classList.toggle("off", !ok); el.querySelector("span").textContent = text; }
   const ucName = u => u==="A" ? CFGD.ucA : CFGD.ucB;
@@ -3309,7 +3371,7 @@ function startHost(){
         <div class="note">Scale 1–5 · blind and anonymous · the AI's assessment is revealed after your vote</div></section>`;
     } else if (P === "co_collect" || P === "co_reveal" || P === "end"){
       const fin = P !== "co_collect", ex = stage.querySelector(".cloudscene");
-      const EB = fin ? "Thank you · AI-Accelerated OCM Night" : "Section 3 · Check-out · live", NT = fin ? "What stays with us from tonight" : "Your check-out in three words";
+      const EB = fin ? "Thank you · AI-Accelerated OCM Night" : "Section 3 · Check-out · live", NT = fin ? "What stays with us from tonight" : "Tonight so far, in three words";
       BG.place(.9,.6,.45);
       if (ex && ["co_collect","co_reveal","end"].includes(prev[2]) && prev[0] === S.session){
         ex.classList.toggle("final", fin); const hq = ex.querySelector(".h-q"), eb = ex.querySelector(".eyebrow");
@@ -3323,7 +3385,8 @@ function startHost(){
           <div class="h-q">${NT}</div></div>
           <div class="cchip"><b id="vn">0</b><span id="vof">check-outs</span><i class="ring2"><i id="vr"></i></i></div></div>
         <div class="cloud" id="cloud"></div><div class="cloudfoot" id="cfoot"></div>
-        <div class="endline"><span id="endstats"></span><span class="badge2">Room Radar was built with AI by <b>Capgemini Invent</b> · vibe-coded for tonight</span></div></section>`;
+        <div class="endline"><div class="gauges">${FB.map((f,i)=>`<div class="gauge" data-i="${i}"><div class="gring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" class="gt"/><circle cx="60" cy="60" r="50" class="gv" style="stroke-dasharray:0 314"/></svg><b>–</b></div><span>${esc(f.k)}<small>scale 0–10 · <em>0</em> answers</small></span></div>`).join("")}</div>
+          <div class="endright"><span id="endstats"></span><span class="badge2">Vibe-coded with AI by <b>Capgemini Invent</b></span></div></div></section>`;
     } else if (P === "uc_vote"){
       const uc = true;
       BG.place(.79,.55,1.05);
@@ -3404,8 +3467,13 @@ function startHost(){
   const cloudEls = new Map(); let measurer = null;
   function renderCloud(){
     const box = $("#cloud"); if (!box) return;
+    // re-layout whenever the cloud area changes size (e.g. closing gauges slide in)
+    if (!box._ro && window.ResizeObserver){ let t; box._ro = new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => { if ($("#cloud") === box) renderCloud(); }, 120); }); box._ro.observe(box); }
     const fin = S.phase !== "co_collect";
     const es = $("#endstats"); if (es) es.textContent = `${A.joined} people · ${A.ucVoters} solution ratings · ${A.coVoters} check-outs`;
+    stage.querySelectorAll(".gauge").forEach(g => { const s = A.fb[+g.dataset.i], v = s.avg; const arc = g.querySelector(".gv"), b = g.querySelector("b");
+      arc.style.strokeDasharray = `${fin && v!=null ? (v/10*314).toFixed(1) : 0} 314`; if (fin && v!=null){ if (+b.dataset.v !== +v.toFixed(1)) countUp(b, v); } else { b.textContent = "–"; b.dataset.v = 0; }
+      g.querySelector("em").textContent = s.n; });
     const list = A.words.filter(w => !w.hidden && !w.blocked).slice(0, 70);
     const hid = A.words.filter(w => w.hidden || w.blocked);
     const sig = (fin?"F":"L") + list.map(w=>w.key+":"+w.count).join(",") + "|" + box.clientWidth + "x" + box.clientHeight;
@@ -3492,7 +3560,7 @@ function startHost(){
     if (a!=null && b!=null && Math.abs(a-b) >= .05){ const w = a>b ? "A" : "B"; const el = stage.querySelector(`.stk[data-u="${w}"][data-t="${key}"]`); if (el) el.classList.add("win"); }
     const L = $("#ucl"); if (!L) return;
     const nm = u => esc(ucName(u));
-    if (stage3===1){ L.innerHTML = a!=null&&b!=null ? `AI favours <b>${nm(a>=b?"A":"B")}</b> · ${fmt1(Math.max(a,b))} vs ${fmt1(Math.min(a,b))}` : "Enter the AI scores in ⚙ Setup."; }
+    if (stage3===1){ L.innerHTML = a!=null&&b!=null ? `AI favors <b>${nm(a>=b?"A":"B")}</b> · ${fmt1(Math.max(a,b))} vs ${fmt1(Math.min(a,b))}` : "Enter the AI scores in ⚙ Setup."; }
     else if (stage3===2){ let best=null; for (const u of ["A","B"]) for (let i=0;i<4;i++){ const r=A.avg[u][i], x=CFGD.ai[u][i]; if (r==null||x==null) continue; const d=r-x; if (!best||Math.abs(d)>Math.abs(best.d)) best={u,i,d,r,x}; }
       L.innerHTML = best ? (Math.abs(best.d) < .5 ? `Room and AI largely agree · biggest gap ${fmt1(Math.abs(best.d))}` : `Biggest gap: <b>${esc(CRIT[best.i].s)}</b> · ${nm(best.u)} · room ${fmt1(best.r)} vs AI ${fmt1(best.x)}`) : "Waiting for ratings…"; }
     else { L.innerHTML = a!=null&&b!=null ? (Math.abs(a-b) < .05 ? `Dead heat · ${fmt1(a)} / 20` : `Overall leader: <b>${nm(a>b?"A":"B")}</b> · ${fmt1(Math.max(a,b))} / 20`) : "Waiting for ratings…"; }
@@ -3664,15 +3732,21 @@ function startPhone(){
     } else if (P === "uc_ai" || P === "uc_room" || P === "uc_matrix"){
       body.innerHTML = `<div class="pcount">Section 2</div><h1>${isDone("uc") ? "Thanks for rating ✓" : "Rating closed"}</h1><div class="done"><span class="orb"></span>Results are on the big screen: AI vs. room.</div>`;
     } else if (P === "co_collect"){
-      if (isDone("co")){ body.innerHTML = `<div class="pcount">Section 3 · check-out</div><h1>Check-out sent ✓</h1><div class="done"><span class="orb"></span>Your words join the cloud on the big screen.</div>`; }
+      if (isDone("co")){ body.innerHTML = `<div class="pcount">Section 3 · check-out</div><h1>Check-out sent ✓</h1><div class="done"><span class="orb"></span>Your words join the cloud on the big screen. Thank you!</div>`; }
       else {
-        body.innerHTML = `<div class="pcount">Section 3 · check-out</div><div class="pq">Your check-out in three words</div>
-          <p class="lead" style="font-size:15px">What stays with you from tonight? One word per field.</p>
+        body.innerHTML = `<div class="pcount">Section 3 · check-out</div><div class="pq">Tonight so far, in three words</div>
           <input class="winput" id="w1" maxlength="24" autocomplete="off" enterkeyhint="next" placeholder="Word 1">
           <input class="winput" id="w2" maxlength="24" autocomplete="off" enterkeyhint="next" placeholder="Word 2">
-          <input class="winput" id="w3" maxlength="24" autocomplete="off" enterkeyhint="send" placeholder="Word 3">
-          <button class="submit" id="coSend" disabled>Send check-out</button><div class="hint">Anonymous. Shown as a word cloud.</div>`;
-        const ins = [1,2,3].map(i=>$("#w"+i)), upd = () => { $("#coSend").disabled = !ins.some(x => cleanWord(x.value)); };
+          <input class="winput" id="w3" maxlength="24" autocomplete="off" enterkeyhint="done" placeholder="Word 3">
+          ${FB.map((f,i)=>`<div class="slq unset" id="sq${i}"><div class="slt">${esc(f.q)}</div>
+            <div class="slrow"><input type="range" min="0" max="10" step="1" value="5" id="sl${i}" aria-label="${esc(f.q)}"><output id="so${i}">?</output></div>
+            <div class="scale-l"><span>0 · ${esc(f.lo)}</span><span>${esc(f.hi)} · 10</span></div></div>`).join("")}
+          <button class="submit" id="coSend" disabled>Send check-out</button><div class="hint" id="coHint">Anonymous. Words appear in the cloud on the big screen.</div>`;
+        const ins = [1,2,3].map(i=>$("#w"+i)), sls = [0,1].map(i=>$("#sl"+i));
+        const upd = () => { const okW = ins.some(x => cleanWord(x.value)), okS = sls.every(s => !s.closest(".slq").classList.contains("unset"));
+          $("#coSend").disabled = !(okW && okS); $("#coHint").textContent = okW && okS ? "Anonymous. Words appear in the cloud on the big screen." : !okW ? "Add at least one word." : "Move both sliders to answer."; };
+        sls.forEach((s,i) => { const set = () => { s.closest(".slq").classList.remove("unset"); $("#so"+i).textContent = s.value; s.style.setProperty("--p", (s.value/10*100)+"%"); upd(); };
+          s.addEventListener("input", set); s.addEventListener("pointerdown", () => setTimeout(set, 0)); s.addEventListener("keydown", () => setTimeout(set, 0)); });
         ins.forEach((x,i) => { x.oninput = upd; x.onkeydown = e => { if (e.key==="Enter"){ e.preventDefault(); if (i<2) ins[i+1].focus(); else if (!$("#coSend").disabled) sendCo(); } }; });
         $("#coSend").onclick = sendCo;
       }
@@ -3698,10 +3772,11 @@ function startPhone(){
     catch(e){ btn.disabled = false; btn.textContent = "Send rating"; alert("Your rating didn't go through. Please tap send again."); }
   }
   async function sendCo(){
-    const words = [1,2,3].map(i => cleanWord($("#w"+i).value)).filter(Boolean);
+    const words = [1,2,3].map(i => cleanWord($("#w"+i).value)).filter(Boolean), fbv = [0,1].map(i => +$("#sl"+i).value);
     if (!words.length) return; const btn = $("#coSend"); btn.disabled = true; btn.textContent = "Sending…";
     if (DEMO){ setDone("co",1); render(true); return; }
-    try { await postAnswers(words.map((w,i) => ({ session:S.session, item:"co"+(i+1), txt:w, device:DEVICE }))); setDone("co",1); render(true); }
+    const rows = words.map((w,i) => ({ session:S.session, item:"co"+(i+1), txt:w, num:null, device:DEVICE })).concat(fbv.map((v,i) => ({ session:S.session, item:"fb"+(i+1), txt:null, num:v, device:DEVICE })));
+    try { await postAnswers(rows); setDone("co",1); render(true); }
     catch(e){ btn.disabled = false; btn.textContent = "Send check-out"; alert("Your check-out didn't go through. Please tap send again."); }
   }
   async function tick(){
