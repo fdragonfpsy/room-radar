@@ -447,6 +447,24 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 /* event-day: reserve the closing line's space already in the live cloud, so the cloud never shrinks when the gauges appear */
 .cloudscene .endline{max-height:9em;visibility:hidden;opacity:0;margin-top:.5em}
 .cloudscene.final .endline{visibility:visible;opacity:1}
+/* ===== section start screens (uc_start, co_start) — mirror the PowerPoint transition slides ===== */
+.secstart{display:grid;grid-template-columns:1fr auto;align-items:center;gap:6em;height:100%;padding-bottom:3em}
+.secstart .left{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+.secstart .num{font-size:15em;font-weight:700;line-height:.8;background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,0));-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:-.12em}
+.secstart .eyebrow{margin-bottom:.5em}
+.secstart .sub{font-size:2.4em;color:var(--t2);margin-top:.6em;max-width:20em;line-height:1.3}
+.steps3{display:flex;gap:1em;margin-top:2.2em}
+.steps3 div{font-size:1.25em;letter-spacing:.14em;text-transform:uppercase;color:var(--t4,var(--t3));border:1px solid var(--line);border-radius:2em;padding:.45em 1.1em;background:rgba(2,3,49,.5)}
+.steps3 div.on{color:var(--navy);background:var(--grad);border-color:transparent;font-weight:700}
+.livepill{display:inline-flex;align-items:center;gap:.8em;margin-top:2.4em;font-size:1.6em;letter-spacing:.06em;color:var(--t2);border:1px solid rgba(0,213,208,.5);border-radius:3em;padding:.6em 1.4em;background:rgba(2,3,49,.6)}
+.livepill i{width:.8em;height:.8em;border-radius:50%;background:var(--aqua);box-shadow:0 0 1em var(--aqua),0 0 2.2em var(--aqua);animation:pulse 2.2s infinite}
+.livepill b{color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
+.livepill .act{color:var(--t3)}
+.livepill .act:not(:empty)::before{content:"·";margin-right:.8em;color:var(--t3)}
+.secstart .qrbox{display:flex;flex-direction:column;align-items:center;gap:1.2em}
+.secstart .qrbox .qrcard svg{width:19em;height:19em;display:block}
+.secstart .qrbox span{font-size:1.45em;color:var(--t2);text-align:center;line-height:1.4}
+.secstart .qrbox b{color:#fff;font-weight:500}
 </style>
 </head>
 <body>
@@ -465,8 +483,8 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
   <div class="controls" id="controls">
     <button class="sec" data-jump="lobby" title="Section 1: Check-in">1 Check-in</button>
     <button class="sec" data-jump="break" title="Holding screen while you continue in PowerPoint (hackathon &amp; gallery walk). Phones stay connected.">↩ Back to deck</button>
-    <button class="sec" data-jump="uc_intro" title="Section 2: Rate the solutions">2 Rating</button>
-    <button class="sec" data-jump="co_collect" title="Section 3: Check-out">3 Check-out</button>
+    <button class="sec" data-jump="uc_start" title="Section 2: Rate the solutions">2 Rating</button>
+    <button class="sec" data-jump="co_start" title="Section 3: Check-out">3 Check-out</button>
     <span class="sep"></span>
     <button id="bBack" title="Back (←)">◀</button>
     <div class="state" id="cState">Lobby</div>
@@ -2872,8 +2890,8 @@ const BLOCK = ["fuck","shit","scheisse","scheiße","arsch","arschloch","idiot","
 
 const SEQ = [{q:0,phase:"lobby"}];
 for (let i=1;i<=4;i++){ SEQ.push({q:i,phase:"ci_vote"}); SEQ.push({q:i,phase:"ci_reveal"}); }
-["radar","break","uc_intro","uc_vote","uc_ai","uc_room","uc_matrix","co_collect","end"].forEach(p => SEQ.push({q:0,phase:p}));
-const SECTION_OF = p => ["uc_intro","uc_vote","uc_ai","uc_room","uc_matrix"].includes(p) ? 2 : ["co_collect","co_reveal","end"].includes(p) ? 3 : p==="break" ? 0 : 1;
+["radar","break","uc_start","uc_intro","uc_vote","uc_ai","uc_room","uc_matrix","co_start","co_collect","end"].forEach(p => SEQ.push({q:0,phase:p}));
+const SECTION_OF = p => ["uc_start","uc_intro","uc_vote","uc_ai","uc_room","uc_matrix"].includes(p) ? 2 : ["co_start","co_collect","co_reveal","end"].includes(p) ? 3 : p==="break" ? 0 : 1;
 
 /* ============ UTIL ============ */
 const params = new URLSearchParams(location.search);
@@ -3306,9 +3324,9 @@ function startHost(){
   const stage = $("#stage"), TTL = ".h-xl, .h-q, .rsum";
 
   const seqIndex = () => Math.max(0, SEQ.findIndex(s => s.q===S.q && s.phase===S.phase));
-  const LABEL = { lobby:"Lobby", ci_vote:"voting", ci_reveal:"results", radar:"Room Radar", break:"Back to deck", uc_intro:"Rating · intro", uc_vote:"Rating · voting", uc_ai:"Rating · AI view", uc_room:"Rating · room vs AI", uc_matrix:"Rating · overall", co_collect:"Check-out · live cloud", co_reveal:"Closing", end:"Closing" };
+  const LABEL = { lobby:"Lobby", ci_vote:"voting", ci_reveal:"results", radar:"Room Radar", break:"Back to deck", uc_start:"Rating · start", co_start:"Check-out · start", uc_intro:"Rating · intro", uc_vote:"Rating · voting", uc_ai:"Rating · AI view", uc_room:"Rating · room vs AI", uc_matrix:"Rating · overall", co_collect:"Check-out · live cloud", co_reveal:"Closing", end:"Closing" };
   const labelFor = s => s.phase.startsWith("ci_") ? `Q${s.q} · ${LABEL[s.phase]}` : LABEL[s.phase];
-  const NEXT = { radar:"Room Radar", break:"Back to deck", uc_intro:"Rating intro", uc_vote:"Open rating", uc_ai:"AI view", uc_room:"Room vs AI", uc_matrix:"Overall", co_collect:"Check-out (live)", end:"Closing" };
+  const NEXT = { radar:"Room Radar", break:"Back to deck", uc_start:"Section 2 start", co_start:"Section 3 start", uc_intro:"Rating intro", uc_vote:"Open rating", uc_ai:"AI view", uc_room:"Room vs AI", uc_matrix:"Overall", co_collect:"Check-out (live)", end:"Closing" };
   function nextLabel(){ const n = SEQ[seqIndex()+1]; if (!n) return "End"; return n.phase==="ci_vote" ? `Q${n.q} ▶` : n.phase==="ci_reveal" ? "Reveal ▶" : NEXT[n.phase] + " ▶"; }
   function setConn(ok, text){ const el = $("#conn"); el.classList.toggle("off", !ok); el.querySelector("span").textContent = text; }
   const ucName = u => u==="A" ? CFGD.ucA : CFGD.ucB;
@@ -3362,6 +3380,18 @@ function startHost(){
           <div class="sub">Keep the Room Radar tab open on your phone. We continue at the report-back: you will rate the two solutions, and see how your view compares to the AI.</div>
           <div class="joined"><span class="n" id="jn">0</span><span class="l">in the room</span></div></div>
         ${smallQR("Joined late? Scan to get in.")}</section>`;
+    } else if (P === "uc_start" || P === "co_start"){
+      // section start screens: mirror the PowerPoint transition slides, so the hand-over from the deck is seamless
+      const n = P === "uc_start" ? 2 : 3;
+      const T = n === 2 ? { t:'Rate the <span class="grad-text">solutions</span>', s:"Your view on both prototypes, side by side with the AI's view." }
+                        : { t:'<span class="grad-text">Check-out</span>', s:"Tonight so far: three words and two quick sliders." };
+      BG.place(.66,.52,.95);
+      stage.innerHTML = `<section class="scene secstart"><div class="left">
+          <div class="num">0${n}</div><div class="eyebrow">Section ${n} · Room Radar</div>
+          <div class="h-xl">${T.t}</div><div class="sub">${T.s}</div>
+          <div class="steps3">${["Check-in","Rating","Check-out"].map((x,i)=>`<div class="${i+1===n?"on":""}">${i+1} · ${x}</div>`).join("")}</div>
+          <div class="livepill"><i></i><span><b id="jn">0</b> in the room</span><span class="act" id="act"></span></div></div>
+        <div class="qrbox"><div class="qrcard">${qrSvg(joinUrl())}</div><span>Scan to join · or keep the<br><b>Room Radar</b> tab open</span></div></section>`;
     } else if (P === "uc_intro"){
       BG.place(.86,.6,.8);
       stage.innerHTML = `<section class="scene ucintro">
@@ -3429,7 +3459,7 @@ function startHost(){
   }
   // headline forms out of the particles of the previous one; small labels decrypt
   // calm by default: title words rise in one after another. Only the five section openers form out of soft light particles.
-  const OPENERS = ["lobby","break","uc_intro","co_collect","end"];
+  const OPENERS = ["lobby","break","uc_start","co_start","end"];
   function rise(el){ if (!el) return; splitWords(el); el.querySelectorAll(".w").forEach((w,i) => { w.style.setProperty("--i", i); w.classList.remove("rise"); void w.offsetWidth; w.classList.add("rise"); }); }
   function sceneFx(){
     const ttl = stage.querySelector(TTL); if (!ttl) return;
@@ -3711,6 +3741,14 @@ function startPhone(){
     } else if (P === "radar" || P === "break"){
       body.innerHTML = `<div class="pcount">Section 1 done ✓</div><h1>Thanks! Keep this tab open.</h1>
         <p class="lead">After the hackathon you'll rate the two solutions here, and see how your view compares to the AI.</p>`;
+    } else if (P === "uc_start"){
+      body.innerHTML = `<div class="pcount">Section 2 · Rating</div><h1>Welcome back to the <span class="grad-text">Room Radar</span>.</h1>
+        <div class="done"><span class="orb"></span>You're connected. Keep this tab open.</div>
+        <p class="lead">In a moment you'll rate the two solutions here, and see how your view compares to the AI.</p>`;
+    } else if (P === "co_start"){
+      body.innerHTML = `<div class="pcount">Section 3 · Check-out</div><h1>One last round in the <span class="grad-text">Room Radar</span>.</h1>
+        <div class="done"><span class="orb"></span>You're connected. Keep this tab open.</div>
+        <p class="lead">The check-out opens here in a moment: three words and two quick sliders, about 30 seconds.</p>`;
     } else if (P === "uc_intro"){
       body.innerHTML = `<div class="pcount">Section 2 · up next</div><h1>Rate the two solutions</h1>
         <div class="ucform">${["A","B"].map(u=>`<div class="done"><span class="orb" style="background:${UCOL[u]}"></span><b>${u} · ${esc(u==="A"?CF.ucA:CF.ucB)}</b></div>`).join("")}</div>
